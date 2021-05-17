@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:whatsapp_clone/ui/AdvancedSingleChat.dart';
 import 'package:whatsapp_clone/ui/ChatPage.dart';
 
 class SingleChat extends StatefulWidget {
@@ -40,18 +41,47 @@ class _SingleChatState extends State<SingleChat> {
   Widget _appBar() {
     return AppBar(
       // automaticallyImplyLeading: false,
-      leadingWidth: 22.5,
-      title: Container(
-        // color: Colors.amber,
+      leadingWidth: 70,
+      leading: Container(
         alignment: Alignment.centerLeft,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            CircleAvatar(
-              backgroundImage: AssetImage("images/songnanli2.jpg"),
+        // color: Colors.amber,
+        child: InkWell(
+          onTap: () {
+            print("Back");
+            Navigator.pop(context);
+          },
+          child: GestureDetector(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  child: Icon(Icons.arrow_back_rounded),
+                ),
+                CircleAvatar(
+                  backgroundImage: AssetImage("images/songnanli2.jpg"),
+                ),
+              ],
             ),
-            Text(widget.username),
-          ],
+          ),
+        ),
+      ),
+      titleSpacing: 0.0,
+      title: InkWell(
+        onTap: () {
+          print("Openning advanced info");
+          Navigator.push(context,
+              MaterialPageRoute(builder: (context) => AdvancedSingleChat()));
+        },
+        child: Container(
+          height: kToolbarHeight - 5,
+          // color: Colors.amberAccent,
+          alignment: Alignment.centerLeft,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Text(widget.username),
+            ],
+          ),
         ),
       ),
       actions: [
@@ -83,10 +113,12 @@ class _SingleChatState extends State<SingleChat> {
                         icon: Icon(Icons.insert_emoticon), onPressed: () {}),
                     Expanded(
                         child: TextField(
+                      keyboardType: TextInputType.text,
                       controller: inputController,
                       maxLines: null,
                       onChanged: (text) {
-                        print('\n'.allMatches(text).length + 1);
+                        // print('\n'.allMatches(text).length + 1);
+                        setState(() {});
                       },
                       decoration: InputDecoration(
                           hintText: "Type a message", border: InputBorder.none),
@@ -109,8 +141,11 @@ class _SingleChatState extends State<SingleChat> {
                 color: Color(0xFF128C7E),
               ),
               child: IconButton(
-                icon: Icon(Icons.mic),
-                onPressed: () {},
+                icon:
+                    Icon(inputController.text.isEmpty ? Icons.mic : Icons.send),
+                onPressed: () {
+                  print("Enviando msg: [${inputController.text}]");
+                },
               ),
             ),
           )
