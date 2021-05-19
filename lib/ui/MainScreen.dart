@@ -78,15 +78,28 @@ class _MainScreenState extends State<MainScreen>
                 ],
                 // forceElevated: innerBoxIsScrolled,
                 bottom: TabBar(
-                  tabs: <Tab>[
-                    Tab(
-                      icon: Icon(
-                        Icons.camera_alt,
+                  isScrollable: true,
+                  tabs: [
+                    Container(
+                      width: 20,
+                      child: Tab(
+                        icon: Icon(
+                          Icons.camera_alt,
+                        ),
                       ),
                     ),
-                    Tab(text: "CHATS"),
-                    Tab(text: "STATUS"),
-                    Tab(text: "CALLS"),
+                    Container(
+                      width: MediaQuery.of(context).size.width / 5,
+                      child: Tab(text: "CHATS"),
+                    ),
+                    Container(
+                      width: MediaQuery.of(context).size.width / 5,
+                      child: Tab(text: "STATUS"),
+                    ),
+                    Container(
+                      width: MediaQuery.of(context).size.width / 5,
+                      child: Tab(text: "CALLS"),
+                    ),
                   ],
                   controller: tabController,
                 ),
