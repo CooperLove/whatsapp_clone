@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:whatsapp_clone/ui/ChatPage.dart';
-import 'package:whatsapp_clone/ui/SingleChat.dart';
+import 'package:whatsapp_clone/ui/DisappearingMsgPage.dart';
 
 class AdvancedSingleChat extends StatefulWidget {
   @override
@@ -9,6 +8,7 @@ class AdvancedSingleChat extends StatefulWidget {
 
 class _AdvancedSingleChatState extends State<AdvancedSingleChat> {
   bool _muteNotifications = false;
+  bool _disappearingMessages = false;
 
   @override
   Widget build(BuildContext context) {
@@ -136,6 +136,7 @@ class _AdvancedSingleChatState extends State<AdvancedSingleChat> {
 
   Widget _inkWell(Widget child, Function onTap, {double height = 50}) {
     return InkWell(
+      splashFactory: InkRipple.splashFactory,
       onTap: onTap,
       child: Container(
         alignment: Alignment.centerLeft,
@@ -156,7 +157,17 @@ class _AdvancedSingleChatState extends State<AdvancedSingleChat> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             _messageOptionItem(
-                "Desappearing messages", "Off", Icons.timelapse_sharp),
+                "Desappearing messages",
+                _disappearingMessages ? "On" : "Off",
+                Icons.timelapse_sharp, onTap: () async {
+              _disappearingMessages = await Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          DisappearingMessagesPage(_disappearingMessages)));
+              setState(() {
+                print("Turned on ? $_disappearingMessages");
+              });
+            }),
             Divider(
               height: 5,
               color: Colors.white54,
@@ -172,8 +183,9 @@ class _AdvancedSingleChatState extends State<AdvancedSingleChat> {
   }
 
   Widget _messageOptionItem(String label, String sublabel, IconData icon,
-      {double labelSize = 14, double sublabelSize = 14}) {
+      {double labelSize = 14, double sublabelSize = 14, Function onTap}) {
     return InkWell(
+      onTap: onTap,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

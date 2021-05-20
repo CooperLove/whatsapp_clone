@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:whatsapp_clone/ui/AdvancedSingleChat.dart';
-import 'package:whatsapp_clone/ui/ChatPage.dart';
+import 'package:whatsapp_clone/ui/Message%20Containers/TextMessageContainer.dart';
 
 class SingleChat extends StatefulWidget {
   SingleChat(this.username);
@@ -13,15 +13,23 @@ class SingleChat extends StatefulWidget {
 
 class _SingleChatState extends State<SingleChat> {
   TextEditingController inputController = TextEditingController();
+  List messages = [];
+  ScrollController chatScrollControler = ScrollController();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _appBar(),
       body: SizedBox.expand(
-        child: Image(
-          image: AssetImage("images/Pirate.jpg"),
-          fit: BoxFit.fill,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image(
+              image: AssetImage("images/Pirate.jpg"),
+              fit: BoxFit.fill,
+            ),
+            _chatContainer2(),
+          ],
         ),
       ),
       extendBody: true,
@@ -92,6 +100,47 @@ class _SingleChatState extends State<SingleChat> {
     );
   }
 
+  Widget _chatContainer() {
+    return Container(
+      alignment: Alignment.bottomRight,
+      margin:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom) +
+              EdgeInsets.only(bottom: 60, left: 15, right: 15),
+      color: Colors.amber.withOpacity(.25),
+      child: SingleChildScrollView(
+        controller: chatScrollControler,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            for (var item in messages) new TextMessageContainer(item, false)
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _chatContainer2() {
+    return ListView.separated(
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom) +
+                EdgeInsets.only(left: 10, right: 10, bottom: 60),
+        separatorBuilder: (context, index) => SizedBox(
+              height: 5,
+            ),
+        reverse: true,
+        controller: chatScrollControler,
+        itemCount: messages.length,
+        // itemExtent: 25,
+        itemBuilder: (context, index) {
+          if (messages.length > 0) {
+            print("Message[$index]");
+            return TextMessageContainer(
+                messages[(messages.length - 1) - index], index.isEven);
+          }
+        });
+  }
+
   Widget _bottomNavagationBar() {
     return Padding(
       padding: EdgeInsets.only(left: 5.0, right: 5.0, bottom: 5.0),
@@ -120,6 +169,9 @@ class _SingleChatState extends State<SingleChat> {
                         // print('\n'.allMatches(text).length + 1);
                         setState(() {});
                       },
+                      // onSubmitted: (text) {
+                      //   messages.add(text);
+                      // },
                       decoration: InputDecoration(
                           hintText: "Type a message", border: InputBorder.none),
                     )),
@@ -145,6 +197,12 @@ class _SingleChatState extends State<SingleChat> {
                     Icon(inputController.text.isEmpty ? Icons.mic : Icons.send),
                 onPressed: () {
                   print("Enviando msg: [${inputController.text}]");
+                  setState(() {
+                    messages.add(inputController.text);
+                    chatScrollControler
+                        .jumpTo(chatScrollControler.position.minScrollExtent);
+                    inputController.text = "";
+                  });
                 },
               ),
             ),
