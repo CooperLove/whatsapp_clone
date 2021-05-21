@@ -1,11 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:whatsapp_clone/ui/AdvancedSingleChat.dart';
 import 'package:whatsapp_clone/ui/Message%20Containers/TextMessageContainer.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class SingleChat extends StatefulWidget {
   SingleChat(this.username);
 
   final String username;
+  _SingleChatState _state;
+
+  void setChatState() => _state.setInternalState();
+
+  set isHilightingMessages(bool value) => _state._isHilightingMessages = value;
+  bool get isHilightingMessages => _state._isHilightingMessages;
+
+  set startedHighlighting(TextMessageContainer value) =>
+      _state.startedHighlighting = value;
+  TextMessageContainer get startedHighlighting => _state.startedHighlighting;
 
   @override
   _SingleChatState createState() => _SingleChatState();
@@ -15,6 +27,18 @@ class _SingleChatState extends State<SingleChat> {
   TextEditingController inputController = TextEditingController();
   List messages = [];
   ScrollController chatScrollControler = ScrollController();
+  TextMessageContainer startedHighlighting;
+  bool _isHilightingMessages = false;
+
+  void setInternalState() {
+    setState(() {});
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    widget._state = this;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -100,25 +124,26 @@ class _SingleChatState extends State<SingleChat> {
     );
   }
 
-  Widget _chatContainer() {
-    return Container(
-      alignment: Alignment.bottomRight,
-      margin:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom) +
-              EdgeInsets.only(bottom: 60, left: 15, right: 15),
-      color: Colors.amber.withOpacity(.25),
-      child: SingleChildScrollView(
-        controller: chatScrollControler,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            for (var item in messages) new TextMessageContainer(item, false)
-          ],
-        ),
-      ),
-    );
-  }
+  // Widget _chatContainer() {
+  //   return Container(
+  //     alignment: Alignment.bottomRight,
+  //     margin:
+  //         EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom) +
+  //             EdgeInsets.only(bottom: 60, left: 15, right: 15),
+  //     color: Colors.amber.withOpacity(.25),
+  //     child: SingleChildScrollView(
+  //       controller: chatScrollControler,
+  //       child: Column(
+  //         mainAxisAlignment: MainAxisAlignment.end,
+  //         crossAxisAlignment: CrossAxisAlignment.end,
+  //         children: [
+  //           for (var item in messages)
+  //             new TextMessageContainer(item, false, widget)
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Widget _chatContainer2() {
     return ListView.separated(
@@ -134,9 +159,13 @@ class _SingleChatState extends State<SingleChat> {
         // itemExtent: 25,
         itemBuilder: (context, index) {
           if (messages.length > 0) {
-            print("Message[$index]");
+            print("$index is ${messages[index] is File ? "File" : "Text"}");
+
             return TextMessageContainer(
-                messages[(messages.length - 1) - index], index.isEven);
+                messages[(messages.length - 1) - index].toString(),
+                index.isEven,
+                widget,
+                (messages.length - 1) - index);
           }
         });
   }
@@ -162,12 +191,14 @@ class _SingleChatState extends State<SingleChat> {
                         icon: Icon(Icons.insert_emoticon), onPressed: () {}),
                     Expanded(
                         child: TextField(
-                      keyboardType: TextInputType.text,
+                      keyboardType: TextInputType.multiline,
                       controller: inputController,
                       maxLines: null,
                       onChanged: (text) {
                         // print('\n'.allMatches(text).length + 1);
-                        setState(() {});
+                        setState(() {
+                          _isHilightingMessages = false;
+                        });
                       },
                       // onSubmitted: (text) {
                       //   messages.add(text);
@@ -176,7 +207,19 @@ class _SingleChatState extends State<SingleChat> {
                           hintText: "Type a message", border: InputBorder.none),
                     )),
                     IconButton(icon: Icon(Icons.attach_file), onPressed: () {}),
-                    IconButton(icon: Icon(Icons.camera_alt), onPressed: () {}),
+                    IconButton(
+                        icon: Icon(Icons.camera_alt),
+                        onPressed: () async {
+                          ImagePicker picker = ImagePicker();
+                          final PickedFile imgFile = await picker.getImage(
+                              source: ImageSource.gallery);
+
+                          if (imgFile == null) return;
+                          File file = File(imgFile.path);
+                          bool fileExist = file.existsSync();
+                          messages.add(file);
+                          if (!fileExist) return;
+                        }),
                   ],
                 ),
               )),
