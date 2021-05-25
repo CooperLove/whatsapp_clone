@@ -4,6 +4,8 @@ import 'package:whatsapp_clone/ui/Message%20Containers/TextMessageContainer.dart
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
+import 'package:whatsapp_clone/ui/SendPhotoScreen.dart';
+
 class SingleChat extends StatefulWidget {
   SingleChat(this.username);
 
@@ -48,6 +50,7 @@ class _SingleChatState extends State<SingleChat> {
   void _repliedMessage(TextMessageContainer message) {
     setState(() {
       repliedMessage = message;
+      print(repliedMessage.message);
     });
   }
 
@@ -172,11 +175,27 @@ class _SingleChatState extends State<SingleChat> {
         itemBuilder: (context, index) {
           if (messages.length > 0) {
             Map d = messages[(messages.length - 1) - index];
+            Map e = d.values.first;
             print(
-                "$index is ${messages[index] is File ? "File" : "Text"} ${d.keys.first}");
-            return TextMessageContainer(d.keys.first.toString(), index.isEven,
-                d.values.first, widget, (messages.length - 1) - index);
+                "$index is ${d.keys.first is File ? e.values.first["caption"] : ""} $e $d");
+            return d.keys.first is File
+                ? TextMessageContainer(
+                    d.keys.first.toString(),
+                    index.isEven,
+                    d.values.first["reply"],
+                    widget,
+                    (messages.length - 1) - index,
+                    image: d.keys.first,
+                    imageCaption: e.values.first["caption"],
+                  )
+                : TextMessageContainer(
+                    d.keys.first.toString(),
+                    index.isEven,
+                    d.values.first["reply"],
+                    widget,
+                    (messages.length - 1) - index);
           }
+          return Container();
         });
   }
 
@@ -248,8 +267,21 @@ class _SingleChatState extends State<SingleChat> {
                           if (imgFile == null) return;
                           File file = File(imgFile.path);
                           bool fileExist = file.existsSync();
-                          messages.add({file: null});
+
                           if (!fileExist) return;
+
+                          String result = await Navigator.of(context).push(
+                              MaterialPageRoute(
+                                  builder: (context) => SendPhotoScreen(file)));
+                          print("Caption: $result");
+                          if (result == null) return;
+                          setState(() {
+                            Map d = {
+                              file: {"reply": null, "caption": result}
+                            };
+                            print(d);
+                            messages.add({file: d});
+                          });
                         }),
                   ],
                 ),
@@ -306,12 +338,18 @@ class _SingleChatState extends State<SingleChat> {
                         "Username",
                         style: TextStyle(color: Colors.purple[300]),
                       ),
-                      Text(
-                        repliedMessage.message ?? "",
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 3,
-                        style: TextStyle(color: Colors.grey),
-                      ),
+                      repliedMessage.image == null
+                          ? Text(
+                              repliedMessage.message ?? "",
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 3,
+                              style: TextStyle(color: Colors.grey),
+                            )
+                          : Image.file(
+                              repliedMessage.image,
+                              height: 55,
+                              width: 55,
+                            ),
                     ],
                   )),
             ),
@@ -355,30 +393,38 @@ class _SingleChatState extends State<SingleChat> {
         child: IconButton(
           icon: Icon(inputController.text.isEmpty ? Icons.mic : Icons.send),
           onPressed: () {
-            setState(() {
-              repliedMessage = null;
-              isReplyingMessage = false;
-            });
-
             if (inputController.text.trim().isEmpty) {
-              inputController.text = "";
+              _onSendMessage();
               return;
             }
 
-            print("Enviando msg: [${inputController.text}]");
+            print(
+                "Enviando msg: [${inputController.text}] ${repliedMessage?.message}");
             setState(() {
               Map<String, dynamic> d = {
-                inputController.text: repliedMessage?.message ?? null
+                inputController.text: {
+                  "reply": repliedMessage?.image ?? repliedMessage?.message,
+                  "caption": "eoq"
+                }
               };
+              print("Replying $d");
               messages.add(d);
               chatScrollControler
                   .jumpTo(chatScrollControler.position.minScrollExtent);
-              inputController.text = "";
             });
+            _onSendMessage();
           },
         ),
       ),
     );
+  }
+
+  void _onSendMessage() {
+    setState(() {
+      inputController.text = "";
+      repliedMessage = null;
+      isReplyingMessage = false;
+    });
   }
 
   Size _textSize(String text, TextStyle style) {

@@ -83,7 +83,7 @@ class _StatusPageState extends State<StatusPage> {
                   style: TextStyle(color: Colors.grey, fontSize: 14),
                 ),
               ),
-              for (var item in contactsStatus) _statusItem()
+              for (var _ in contactsStatus) _statusItem()
             ],
           )
         : Container();
@@ -102,7 +102,7 @@ class _StatusPageState extends State<StatusPage> {
                   style: TextStyle(color: Colors.grey),
                 ),
               ),
-              for (var item in contactsStatus) _statusItem()
+              for (var _ in contactsStatus) _statusItem()
             ],
           )
         : Container();

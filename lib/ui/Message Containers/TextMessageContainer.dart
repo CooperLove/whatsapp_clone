@@ -2,14 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:swipe_to/swipe_to.dart';
 import 'package:whatsapp_clone/ui/SingleChat.dart';
 import 'package:flutter/services.dart';
+import 'dart:io';
 
 class TextMessageContainer extends StatefulWidget {
   TextMessageContainer(
-      this._message, this._sent, this._repliedMessage, this.chat, this._index);
+      this._message, this._sent, this._repliedMessage, this.chat, this._index,
+      {this.image, this.imageCaption});
   final SingleChat chat;
   final String _message;
+  final File image;
+  final String imageCaption;
   String get message => _message;
-  final String _repliedMessage;
+  final dynamic _repliedMessage;
   final bool _sent;
   final _index;
   @override
@@ -23,6 +27,10 @@ class _TextMessageContainerState extends State<TextMessageContainer> {
   void initState() {
     super.initState();
     _isHighlighted = false;
+
+    if (widget.image != null) {
+      print("Tem imagem");
+    }
   }
 
   @override
@@ -47,7 +55,7 @@ class _TextMessageContainerState extends State<TextMessageContainer> {
     return GestureDetector(
       onTap: () {
         print("Tap on: ${widget._message} ${widget.chat}");
-        if (!widget?.chat?.isHilightingMessages) return;
+        if (widget.chat != null && !widget.chat.isHilightingMessages) return;
         print(
             "Tap on: ${widget?._index} ${widget?.chat?.startedHighlighting?._index}");
         setState(() {
@@ -64,6 +72,7 @@ class _TextMessageContainerState extends State<TextMessageContainer> {
           widget?.chat?.startedHighlighting = widget;
           widget?.chat?.isHilightingMessages = true;
           _isHighlighted = true;
+          widget.chat.setChatState();
         });
         HapticFeedback.vibrate();
       },
@@ -87,7 +96,7 @@ class _TextMessageContainerState extends State<TextMessageContainer> {
 
   Widget _messageBody() {
     Size textSize = _textSize(widget._message, null);
-    Size repliedSize = widget._repliedMessage == null
+    Size repliedSize = widget._repliedMessage is File
         ? Size(0, 0)
         : _textSize(widget._repliedMessage, null);
     int numLines = ((textSize.width + 60) / 250.0).ceil();
@@ -95,25 +104,42 @@ class _TextMessageContainerState extends State<TextMessageContainer> {
     return Card(
       color: widget._sent ? Color(0xFF054642) : Color(0xFF222C35),
       child: Container(
-        width: widget._repliedMessage == null
-            ? textSize.width + 60
-            : (repliedSize.width + 60 > textSize.width + 60
-                ? repliedSize.width + 60
-                : textSize.width + 60),
+        width:
+            widget._repliedMessage == null && widget._repliedMessage is String
+                ? textSize.width + 60
+                : (repliedSize.width + 60 > textSize.width + 60
+                    ? repliedSize.width + 60
+                    : textSize.width + 60),
         constraints: BoxConstraints(maxWidth: 250, minWidth: 70),
         margin: EdgeInsets.symmetric(horizontal: 5, vertical: 5),
         // color: Colors.black54,
         alignment: Alignment.bottomRight,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.end,
           children: [
             _replyWidget(),
-            numLines > 1 ? Text(widget._message) : Container(),
+            SizedBox(
+              height: 5,
+            ),
+            widget.image != null ? Image.file(widget.image) : Container(),
+            widget.image != null && widget.imageCaption != null
+                ? SizedBox(
+                    height: 10,
+                  )
+                : Container(),
+            widget.image != null && widget.imageCaption != null
+                ? Text(widget.imageCaption)
+                : Container(),
+            // (numLines > 1 ? Text(widget._message) : Container()),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 numLines == 1 ? Text(widget._message) : Container(),
-                _messageTimestamp()
+                Align(
+                  alignment: Alignment.bottomRight,
+                  child: _messageTimestamp(),
+                )
               ],
             )
           ],
@@ -131,7 +157,13 @@ class _TextMessageContainerState extends State<TextMessageContainer> {
         clipBehavior: Clip.antiAlias,
         height: widget._repliedMessage == null
             ? 0
-            : _textSize(widget._repliedMessage, null).height + 8,
+            : (widget._repliedMessage is File
+                ? 55
+                : (widget._repliedMessage.isEmpty
+                    ? 0
+                    : _textSize(widget._repliedMessage, null, maxWidth: 200)
+                            .height +
+                        8)),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.all(Radius.circular(5.0)),
           shape: BoxShape.rectangle,
@@ -139,14 +171,24 @@ class _TextMessageContainerState extends State<TextMessageContainer> {
           // color: Colors.grey[850].withAlpha(200),
         ),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
             VerticalDivider(width: 2, thickness: 3, color: Colors.purple[300]),
-            Padding(
-              padding: EdgeInsets.only(left: 7.5),
-              child: Text(
-                widget._repliedMessage ?? "",
-                overflow: TextOverflow.ellipsis,
-                maxLines: 3,
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(left: 7.5),
+                child: widget._repliedMessage is File
+                    ? Image.file(
+                        widget._repliedMessage,
+                        height: 55,
+                        width: 55,
+                      )
+                    : Text(
+                        widget._repliedMessage ?? "",
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 3,
+                        softWrap: true,
+                      ),
               ),
             )
           ],
