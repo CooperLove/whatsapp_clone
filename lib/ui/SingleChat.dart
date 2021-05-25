@@ -12,12 +12,19 @@ class SingleChat extends StatefulWidget {
 
   void setChatState() => _state.setInternalState();
 
-  set isHilightingMessages(bool value) => _state._isHilightingMessages = value;
-  bool get isHilightingMessages => _state._isHilightingMessages;
+  set isHilightingMessages(bool value) => _state?._isHilightingMessages = value;
+  bool get isHilightingMessages =>
+      _state == null ? false : _state._isHilightingMessages;
 
   set startedHighlighting(TextMessageContainer value) =>
-      _state.startedHighlighting = value;
-  TextMessageContainer get startedHighlighting => _state.startedHighlighting;
+      _state?.startedHighlighting = value;
+  TextMessageContainer get startedHighlighting => _state?.startedHighlighting;
+
+  set isReplyingMessage(bool value) => _state?._isReplyingMessage(value);
+  bool get isReplyingMessage => _state?.isReplyingMessage;
+
+  set repliedMessage(TextMessageContainer message) =>
+      _state?._repliedMessage(message);
 
   @override
   _SingleChatState createState() => _SingleChatState();
@@ -29,6 +36,20 @@ class _SingleChatState extends State<SingleChat> {
   ScrollController chatScrollControler = ScrollController();
   TextMessageContainer startedHighlighting;
   bool _isHilightingMessages = false;
+  bool isReplyingMessage = false;
+  TextMessageContainer repliedMessage;
+
+  void _isReplyingMessage(bool value) {
+    setState(() {
+      isReplyingMessage = value;
+    });
+  }
+
+  void _repliedMessage(TextMessageContainer message) {
+    setState(() {
+      repliedMessage = message;
+    });
+  }
 
   void setInternalState() {
     setState(() {});
@@ -62,8 +83,13 @@ class _SingleChatState extends State<SingleChat> {
         margin:
             EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
         child: _bottomNavagationBar(),
-        // height: 80,
-        constraints: BoxConstraints(maxHeight: 90),
+        height: !isReplyingMessage
+            ? 65.0 +
+                (inputController.text.isNotEmpty
+                    ? _textSize(inputController.text, null).height - 16
+                    : 0)
+            : null,
+        constraints: BoxConstraints(maxHeight: 180, minHeight: 65),
         color: Colors.transparent,
       ),
       backgroundColor: Colors.transparent,
@@ -124,32 +150,18 @@ class _SingleChatState extends State<SingleChat> {
     );
   }
 
-  // Widget _chatContainer() {
-  //   return Container(
-  //     alignment: Alignment.bottomRight,
-  //     margin:
-  //         EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom) +
-  //             EdgeInsets.only(bottom: 60, left: 15, right: 15),
-  //     color: Colors.amber.withOpacity(.25),
-  //     child: SingleChildScrollView(
-  //       controller: chatScrollControler,
-  //       child: Column(
-  //         mainAxisAlignment: MainAxisAlignment.end,
-  //         crossAxisAlignment: CrossAxisAlignment.end,
-  //         children: [
-  //           for (var item in messages)
-  //             new TextMessageContainer(item, false, widget)
-  //         ],
-  //       ),
-  //     ),
-  //   );
-  // }
-
   Widget _chatContainer2() {
     return ListView.separated(
-        padding:
-            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom) +
-                EdgeInsets.only(left: 10, right: 10, bottom: 60),
+        padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom) +
+            EdgeInsets.only(
+                left: 10,
+                right: 10,
+                bottom: 60 +
+                    (isReplyingMessage
+                        ? 65.0 +
+                            (_textSize(inputController.text, null).height - 16)
+                        : 0.0)),
         separatorBuilder: (context, index) => SizedBox(
               height: 5,
             ),
@@ -159,18 +171,31 @@ class _SingleChatState extends State<SingleChat> {
         // itemExtent: 25,
         itemBuilder: (context, index) {
           if (messages.length > 0) {
-            print("$index is ${messages[index] is File ? "File" : "Text"}");
-
-            return TextMessageContainer(
-                messages[(messages.length - 1) - index].toString(),
-                index.isEven,
-                widget,
-                (messages.length - 1) - index);
+            Map d = messages[(messages.length - 1) - index];
+            print(
+                "$index is ${messages[index] is File ? "File" : "Text"} ${d.keys.first}");
+            return TextMessageContainer(d.keys.first.toString(), index.isEven,
+                d.values.first, widget, (messages.length - 1) - index);
           }
         });
   }
 
   Widget _bottomNavagationBar() {
+    return Container(
+      // height: 200,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: isReplyingMessage
+            ? [_replyContainer(), _bottomBarBody()]
+            : [
+                _bottomBarBody(),
+              ],
+      ),
+    );
+  }
+
+  Widget _bottomBarBody() {
     return Padding(
       padding: EdgeInsets.only(left: 5.0, right: 5.0, bottom: 5.0),
       child: Row(
@@ -181,7 +206,11 @@ class _SingleChatState extends State<SingleChat> {
                 // constraints: BoxConstraints(minHeight: 45),
                 // height: 45,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.all(Radius.circular(20.0)),
+                  borderRadius: isReplyingMessage
+                      ? BorderRadius.only(
+                          bottomLeft: Radius.circular(20.0),
+                          bottomRight: Radius.circular(20.0))
+                      : BorderRadius.all(Radius.circular(20.0)),
                   shape: BoxShape.rectangle,
                   color: Colors.grey[850].withAlpha(200),
                 ),
@@ -193,9 +222,11 @@ class _SingleChatState extends State<SingleChat> {
                         child: TextField(
                       keyboardType: TextInputType.multiline,
                       controller: inputController,
-                      maxLines: null,
+                      minLines: 1,
+                      maxLines: 3,
                       onChanged: (text) {
-                        // print('\n'.allMatches(text).length + 1);
+                        print(
+                            "${_textSize(text, null)} ${text.trim().isEmpty}");
                         setState(() {
                           _isHilightingMessages = false;
                         });
@@ -217,42 +248,146 @@ class _SingleChatState extends State<SingleChat> {
                           if (imgFile == null) return;
                           File file = File(imgFile.path);
                           bool fileExist = file.existsSync();
-                          messages.add(file);
+                          messages.add({file: null});
                           if (!fileExist) return;
                         }),
                   ],
                 ),
               )),
-          // Expanded(
-          // child:
-          Padding(
-            padding: EdgeInsets.only(left: 5),
-            child: Container(
-              height: 45,
-              width: 45,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.all(Radius.circular(20.0)),
-                shape: BoxShape.rectangle,
-                color: Color(0xFF128C7E),
-              ),
-              child: IconButton(
-                icon:
-                    Icon(inputController.text.isEmpty ? Icons.mic : Icons.send),
-                onPressed: () {
-                  print("Enviando msg: [${inputController.text}]");
-                  setState(() {
-                    messages.add(inputController.text);
-                    chatScrollControler
-                        .jumpTo(chatScrollControler.position.minScrollExtent);
-                    inputController.text = "";
-                  });
-                },
-              ),
-            ),
-          )
-          // )
+          _sendMessageButton()
         ],
       ),
     );
+  }
+
+  Widget _replyContainer() {
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      margin: EdgeInsets.only(left: 5, right: 55),
+      height: repliedMessage != null
+          ? (_textSize(repliedMessage.message, null).height + 45).clamp(45, 95)
+          : 45,
+      decoration: BoxDecoration(
+        // borderRadius: BorderRadius.all(Radius.circular(20.0)),
+        borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20.0), topRight: Radius.circular(20.0)),
+        shape: BoxShape.rectangle,
+        color: Colors.grey[800].withAlpha(150),
+      ),
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        margin: EdgeInsets.only(left: 10, bottom: 5, top: 7.5, right: 7.5),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.all(Radius.circular(10.0)),
+          shape: BoxShape.rectangle,
+          // border: Border(
+          //     left: BorderSide(color: Colors.purple[300], width: 2,)),
+          color: Colors.grey[900].withOpacity(0.75),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            VerticalDivider(
+                width: 5,
+                thickness: 4,
+                // indent: 7.5,
+                // endIndent: 7.5,
+                color: Colors.purple[300]),
+            Expanded(
+              flex: 3,
+              child: Padding(
+                  padding: EdgeInsets.only(left: 5),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Username",
+                        style: TextStyle(color: Colors.purple[300]),
+                      ),
+                      Text(
+                        repliedMessage.message ?? "",
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 3,
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ],
+                  )),
+            ),
+            Expanded(
+                flex: 1,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    IconButton(
+                      alignment: Alignment.topRight,
+                      icon: Icon(Icons.close),
+                      iconSize: 16,
+                      onPressed: () {
+                        setState(() {
+                          isReplyingMessage = false;
+                          repliedMessage = null;
+                        });
+                      },
+                      color: Colors.grey,
+                    )
+                  ],
+                )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _sendMessageButton() {
+    return Padding(
+      padding: EdgeInsets.only(left: 5),
+      child: Container(
+        height: 45,
+        width: 45,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.all(Radius.circular(20.0)),
+          shape: BoxShape.rectangle,
+          color: Color(0xFF128C7E),
+        ),
+        child: IconButton(
+          icon: Icon(inputController.text.isEmpty ? Icons.mic : Icons.send),
+          onPressed: () {
+            setState(() {
+              repliedMessage = null;
+              isReplyingMessage = false;
+            });
+
+            if (inputController.text.trim().isEmpty) {
+              inputController.text = "";
+              return;
+            }
+
+            print("Enviando msg: [${inputController.text}]");
+            setState(() {
+              Map<String, dynamic> d = {
+                inputController.text: repliedMessage?.message ?? null
+              };
+              messages.add(d);
+              chatScrollControler
+                  .jumpTo(chatScrollControler.position.minScrollExtent);
+              inputController.text = "";
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  Size _textSize(String text, TextStyle style) {
+    final TextPainter textPainter = TextPainter(
+        text: TextSpan(text: text, style: style),
+        maxLines: 3,
+        textDirection: TextDirection.ltr)
+      ..layout(minWidth: 0, maxWidth: 150);
+    // print("${widget._message} Size: ${textPainter.size}");
+    return textPainter.size;
   }
 }
